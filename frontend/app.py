@@ -1,62 +1,18 @@
-import streamlit as st
-import json
+import sys
 import os
-import base64
-from dotenv import load_dotenv
-from warehouse_builder import WarehouseBuilder
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# 1. 加载环境变量
-load_dotenv()
+import streamlit as st
+import os
+from dotenv import load_dotenv
+from backend.ai_api import get_ai_parameters
+from backend.utils import encode_image
+from backend.warehouse_builder import WarehouseBuilder
+from backend.warehouse_config import validate_config
 
 st.set_page_config(page_title="AI Warehouse Generator", page_icon="🏭", layout="wide")
-
-# ==========================================
-# 辅助函数：图片转 Base64 (给 AI 看)
-# ==========================================
-def encode_image(image_file):
-    return base64.b64encode(image_file.read()).decode('utf-8')
-
-# ==========================================
-# 核心函数：呼叫 AI (The Brain)
-# ==========================================
-def get_ai_parameters(api_key, base64_image, user_prompt):
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key)
-
-    # 系统提示词：强制 AI 输出 Sprint 1 定义的 JSON 协议
-    system_prompt = """
-    You are an Industrial AI Expert. Analyze the user's warehouse image.
-    Output ONLY a valid JSON object matching this exact schema (no markdown, no comments):
-    {
-      "warehouse_config": {
-        "overall_layout": { "rows": "int (count of racks)", "row_spacing": "float (mm)" }
-      },
-      "racking_system": {
-        "dimensions": { "bay_width": "float", "bay_depth": "float", "total_height": "float" },
-        "structure": { "levels": "int", "first_beam_height": "float" },
-        "components": { "upright_color": "string (blue/orange/gray)", "beam_color": "string", "has_decking": "bool" }
-      }
-    }
-    Estimate dimensions based on standard industrial pallets (1.2m x 1.0m) if not specified.
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-4o", # 必须支持视觉的模型
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": [
-                {"type": "text", "text": user_prompt},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-            ]}
-        ],
-        response_format={ "type": "json_object" }, # 强制 JSON 模式
-        temperature=0.1 # 降低随机性
-    )
-    return json.loads(response.choices[0].message.content)
-
-# ==========================================
-# UI 界面 (The Face)
-# ==========================================
+load_dotenv()
+st.set_page_config(page_title="AI Warehouse Generator", page_icon="🏭", layout="wide")
 st.title("🏭 AI Industrial Warehouse Builder")
 st.markdown("**Hackathon MVP Mode**: Upload Image -> Extract Logic -> Generate CAD")
 
@@ -83,10 +39,10 @@ if generate_btn:
         with st.spinner("🤖 AI is analyzing structure (Vision Processing)..."):
             try:
                 # A. 获取参数 (AI vs Demo)
+
                 if use_demo_mode:
                     import time
-                    time.sleep(1) # 模拟 AI 思考
-                    # 模拟数据
+                    time.sleep(1)
                     config_data = {
                         "warehouse_config": { "overall_layout": { "rows": 2, "row_spacing": 2000.0 } },
                         "racking_system": {
@@ -100,11 +56,12 @@ if generate_btn:
                     if not api_key_input:
                         st.error("API Key missing! Use Demo Mode or enter Key.")
                         st.stop()
-                    
-                    # 真实 AI 调用
                     base64_img = encode_image(uploaded_file)
                     config_data = get_ai_parameters(api_key_input, base64_img, prompt)
                     st.success("✅ AI Analysis Complete")
+
+                # 校验参数
+                validate_config(config_data)
 
                 # B. 展示提取的参数 (Human-in-the-loop)
                 with col2:
