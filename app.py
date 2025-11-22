@@ -6,7 +6,7 @@ from datetime import datetime
 from utils.file_manager import ensure_dir
 from utils.logger import get_logger
 import json
-from backend.M2.parameter_extractor import extract_from_image_description
+from parameter_extractor import extract_from_image_description
 from backend.M2.parameter_validator import ParameterValidator
 from backend.M3.assembly_manager import AssemblyBuilder
 

@@ -11,15 +11,16 @@ sys.path.insert(0, str(backend_path))
 from utils.file_manager import ensure_dir
 from utils.logger import get_logger
 import json
-from backend.M2.parameter_extractor import extract_from_image_description
+from parameter_extractor import extract_from_image_description
 from backend.M2.parameter_validator import ParameterValidator
 from backend.M3.assembly_manager import AssemblyBuilder
 
 # 新的 ImageAnalyzer（支持智谱/硅基流动/Ollama/Hugging Face）
 try:
-    from backend.M2.temp import ImageAnalyzer
+    from backend.M2.temp import ImageAnalyzer, default_analysis_prompt
 except Exception:
     ImageAnalyzer = None
+    default_analysis_prompt = None
 
 # 保留 ai_analyzer 作为备选（仅 Hugging Face）
 try:
@@ -192,7 +193,11 @@ else:
     # Analyze button
     if st.button("Analyze Image"):
         # 根据选择的方法创建分析器
-        prompt = "请详细描述这个货架/仓库，包括层数、尺寸、部件和组装方式。"
+        # 使用后端提供的默认精细提示词以保证前后端一致
+        if default_analysis_prompt is not None:
+            prompt = default_analysis_prompt()
+        else:
+            prompt = "请详细描述这个货架/仓库，包括层数、尺寸、部件和组装方式。"
 
         with st.spinner("Analyzing image, please wait..."):
             result = None
@@ -294,8 +299,12 @@ else:
                                         
                                         # Display file info
                                         step_path_obj = Path(step_file)
-                                        file_size_kb = step_path_obj.stat().st_size / 1024
-                                        st.info(f"STEP file: {step_path_obj.name} ({file_size_kb:.1f} KB)")
+                                        if step_path_obj.exists():
+                                            file_size_kb = step_path_obj.stat().st_size / 1024
+                                            st.info(f"STEP file: {step_path_obj.name} ({file_size_kb:.1f} KB)")
+                                        else:
+                                            st.warning("STEP reported as generated but file not found at the reported path.")
+                                            step_path_obj = None
 
                                         # Show CadQuery marker files if present
                                         marker_path = step_path_obj.parent / "cadquery_called.txt"
@@ -333,13 +342,55 @@ else:
                                                     st.info("No `generation.log` found in output directory.")
 
                                         # Download button
-                                        with open(step_file, "rb") as f:
-                                            st.download_button(
-                                                label="Download warehouse.step",
-                                                data=f.read(),
-                                                file_name="warehouse_assembly.step",
-                                                mime="application/step"
-                                            )
+                                        # Offer download: prefer the reported file, fallback to latest .step in output/analysis
+                                        downloaded = False
+                                        if step_path_obj is not None and step_path_obj.exists():
+                                            try:
+                                                with open(step_path_obj, "rb") as f:
+                                                    st.download_button(
+                                                        label="Download warehouse.step",
+                                                        data=f.read(),
+                                                        file_name=step_path_obj.name,
+                                                        mime="application/step"
+                                                    )
+                                                downloaded = True
+                                            except Exception as e:
+                                                st.error(f"Failed to open STEP file for download: {e}")
+
+                                        if not downloaded:
+                                            # search for latest .step under out_base/analysis
+                                            try:
+                                                analysis_dir = out_base / "analysis"
+                                                if analysis_dir.exists():
+                                                    dirs = [d for d in analysis_dir.iterdir() if d.is_dir()]
+                                                    dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+                                                    found_step = None
+                                                    for d in dirs:
+                                                        candidates = list(d.glob("*.step"))
+                                                        if candidates:
+                                                            # prefer a file named warehouse_assembly.step
+                                                            pref = next((c for c in candidates if c.name == "warehouse_assembly.step"), None)
+                                                            found_step = pref or candidates[0]
+                                                            break
+                                                    if found_step is not None:
+                                                        try:
+                                                            with open(found_step, "rb") as f:
+                                                                st.info(f"Found STEP in: {found_step}")
+                                                                st.download_button(
+                                                                    label="Download latest STEP",
+                                                                    data=f.read(),
+                                                                    file_name=found_step.name,
+                                                                    mime="application/step"
+                                                                )
+                                                            downloaded = True
+                                                        except Exception as e:
+                                                            st.error(f"Failed to read fallback STEP file: {e}")
+                                                    else:
+                                                        st.warning("No STEP file found in output/analysis to download.")
+                                                else:
+                                                    st.warning("No analysis output directory found for fallback STEP search.")
+                                            except Exception as e:
+                                                st.error(f"Error while searching for fallback STEP: {e}")
                                     else:
                                         if error_msg:
                                             st.error(f"Failed to generate STEP: {error_msg}")

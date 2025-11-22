@@ -1,3 +1,41 @@
+import pytest
+from pathlib import Path
+
+try:
+    from backend.M3.component_factory import UpRightBuilder, BeamBuilder, DeckingBuilder
+    from backend.M3.assembly_manager import AssemblyBuilder
+    CAD_AVAILABLE = True
+except Exception:
+    CAD_AVAILABLE = False
+
+
+@pytest.mark.skipif(not CAD_AVAILABLE, reason="CadQuery or backend M3 not available in test env")
+def test_build_components_and_export(tmp_path):
+    # Build sample parts
+    upright = UpRightBuilder.build(height=6000, section_size="80x60")
+    beam = BeamBuilder.build(length=1000, section_size="50x100")
+    decking = DeckingBuilder.build(width=2400, depth=1000, thickness=10)
+
+    # Basic bbox checks (values are approximate; ensure objects exist)
+    for part in (upright, beam, decking):
+        bbox = part.val().BoundingBox()
+        assert bbox.xlen > 0
+        assert bbox.ylen > 0
+        assert bbox.zlen > 0
+
+    # Assembly export
+    config = {
+        "racking_system": {
+            "dimensions": {"bay_width": 2400, "bay_depth": 1000, "total_height": 6000},
+            "structure": {"levels": 1, "first_beam_height": 200, "beam_spacing": 1800}
+        }
+    }
+    builder = AssemblyBuilder(config)
+    out = tmp_path / "test_warehouse.step"
+    ok = builder.export_step(str(out))
+    assert ok
+    assert out.exists()
+    assert out.stat().st_size > 1024
 """
 M3 Phase 4: CAD Generation Unit Tests
 Tests component generation, assembly, and STEP export

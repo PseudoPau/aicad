@@ -1,1 +1,11 @@
-根据图片信息，这个货架有四层，每层都有金属板面。货架的框架由黑色金属制成，看起来非常坚固。货架的层数、尺寸、部件和组装方式无法从图中直接得知，需要更多的信息才能回答您这个问题。
+```json
+{
+    "subject": "4层重型钢制货架",
+    "colors": {"frame": "黑色", "decking": "黄色"},
+    "vertical_components": {"count": 4, "section": "C型钢", "hole_type": "无孔", "color": "黑色"},
+    "bracing": {"type": "Z", "position": "两侧"},
+    "beams": {"per_level_visible": 1, "actual_per_level": 2, "connection": "螺栓固定", "color": "黄色"},
+    "decking": {"type": "单块板", "panels": "单块", "seam": "无"},
+    "estimates": {"bay_width_mm": 2000, "bay_depth_mm": 1500, "level_height_mm": 1600}
+}
+```

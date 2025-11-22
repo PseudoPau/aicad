@@ -44,12 +44,12 @@ class AssemblyBuilder:
             raise ValueError(f"Invalid config structure: {e}")
 
 
-    def build_single_bay(self) -> List[cq.Solid]:
+    def build_single_bay(self) -> List[Tuple[str, cq.Solid]]:
         try:
             parts = []
             upright_left = UpRightBuilder.build(self.total_height, "80x60")
             upright_left = upright_left.translate((0, 0, 0))
-            parts.append(upright_left)
+            parts.append(("upright_left", upright_left))
             try:
                 bbox = upright_left.BoundingBox()
                 logger.debug(f"Left upright bbox: {bbox.xlen:.1f}x{bbox.ylen:.1f}x{bbox.zlen:.1f}")
@@ -59,7 +59,7 @@ class AssemblyBuilder:
             
             upright_right = UpRightBuilder.build(self.total_height, "80x60")
             upright_right = upright_right.translate((0, self.bay_depth, 0))
-            parts.append(upright_right)
+            parts.append(("upright_right", upright_right))
             try:
                 bbox = upright_right.BoundingBox()
                 logger.debug(f"Right upright bbox: {bbox.xlen:.1f}x{bbox.ylen:.1f}x{bbox.zlen:.1f}")
@@ -69,7 +69,7 @@ class AssemblyBuilder:
             
             beam_front = BeamBuilder.build(self.bay_depth, "50x100")
             beam_front = beam_front.translate((0, 0, self.first_beam_height))
-            parts.append(beam_front)
+            parts.append(("beam_front", beam_front))
             try:
                 bbox = beam_front.BoundingBox()
                 logger.debug(f"Front beam bbox: {bbox.xlen:.1f}x{bbox.ylen:.1f}x{bbox.zlen:.1f}")
@@ -80,7 +80,7 @@ class AssemblyBuilder:
             beam_spacing_x = self.bay_width / 2
             beam_back = BeamBuilder.build(self.bay_depth, "50x100")
             beam_back = beam_back.translate((beam_spacing_x, 0, self.first_beam_height))
-            parts.append(beam_back)
+            parts.append(("beam_back", beam_back))
             try:
                 bbox = beam_back.BoundingBox()
                 logger.debug(f"Back beam bbox: {bbox.xlen:.1f}x{bbox.ylen:.1f}x{bbox.zlen:.1f}")
@@ -93,7 +93,7 @@ class AssemblyBuilder:
             
             decking = DeckingBuilder.build(self.bay_width, self.bay_depth, 10)
             decking = decking.translate((0, 0, decking_z))
-            parts.append(decking)
+            parts.append(("decking", decking))
             try:
                 bbox = decking.BoundingBox()
                 logger.debug(f"Decking bbox: {bbox.xlen:.1f}x{bbox.ylen:.1f}x{bbox.zlen:.1f}")
@@ -114,8 +114,10 @@ class AssemblyBuilder:
             parts = self.build_single_bay()
             if not parts:
                 raise ValueError("No parts generated")
-            assembly_wp = cq.Workplane("XY").add(parts[0])
-            for part in parts[1:]:
+            # parts is a list of (name, solid)
+            first_part = parts[0][1]
+            assembly_wp = cq.Workplane("XY").add(first_part)
+            for _, part in parts[1:]:
                 temp_wp = cq.Workplane("XY").add(part)
                 assembly_wp = assembly_wp.union(temp_wp)
                 logger.debug(f"Part unioned to assembly")
@@ -131,6 +133,33 @@ class AssemblyBuilder:
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             out_dir = Path(output_path).parent
 
+            # Build parts and export individual component STEP files
+            parts = self.build_single_bay()  # list of (name, solid)
+            components_dir = out_dir / "components"
+            components_dir.mkdir(parents=True, exist_ok=True)
+
+            metadata = {"components": []}
+
+            for idx, (name, part) in enumerate(parts, start=1):
+                try:
+                    comp_name = f"{name}_{idx}.step"
+                    comp_path = components_dir / comp_name
+                    # attempt to export part
+                    if hasattr(part, 'exportStep'):
+                        part.exportStep(str(comp_path))
+                    else:
+                        part.val().exportStep(str(comp_path))
+                    sz = comp_path.stat().st_size if comp_path.exists() else 0
+                    metadata['components'].append({
+                        'name': comp_name,
+                        'path': str(comp_path),
+                        'size_bytes': sz
+                    })
+                    logger.info(f"Exported component: {comp_path} ({sz} bytes)")
+                except Exception as e:
+                    logger.warning(f"Failed to export component {name}: {e}")
+
+            # Now assemble full assembly and export
             assembly = self.assemble_warehouse()
 
             # write a marker file before attempting export so UI can confirm geometry creation
@@ -160,11 +189,27 @@ class AssemblyBuilder:
             except Exception as e:
                 logger.debug(f"Could not determine assembly bounding box: {e}")
 
+            # export assembly STEP
             if hasattr(assembly, 'exportStep'):
                 assembly.exportStep(output_path)
             else:
                 assembly = cq.Workplane("XY").add(assembly).val()
                 assembly.exportStep(output_path)
+
+            # write metadata.json
+            try:
+                import json as _json
+                meta_path = out_dir / 'metadata.json'
+                meta = {
+                    'assembly': str(output_path),
+                    'components_dir': str(components_dir),
+                    **metadata
+                }
+                with open(meta_path, 'w', encoding='utf-8') as mf:
+                    _json.dump(meta, mf, indent=2)
+                logger.info(f"Wrote metadata: {meta_path}")
+            except Exception as e:
+                logger.warning(f"Failed to write metadata.json: {e}")
 
             output_file = Path(output_path)
             if not output_file.exists():

@@ -330,15 +330,59 @@ analyzer = ImageAnalyzer(method="siliconflow", api_key="你的密钥")
         if not Path(image_path).exists():
             return f"错误: 图片文件不存在: {image_path}"
 
-        # 如果没有提供 prompt，使用货架识别的默认提示词
+        # 如果没有提供 prompt，使用更详细的货架识别提示词（结构化、包含示例与说明）
         if prompt is None:
-            prompt = """请仔细分析这张货架图片，重点关注：
-1. 货架有多少层？（请数清楚水平的层板）
-2. 每层的结构和特征
-3. 货架的组装方式和部件（如立柱、层板、连接件等）
-4. 任何可见的细节
+            prompt = """
+主体定义 (Subject Definition)
+请首先用一句话提供主体的核心描述，格式为：
+- [层数/高度] + [材质] + [主体名称]
+示例："4层重型钢制货架" 或 "2米高自动化立体库货架"
 
-请给出详细、准确的分析。"""
+整体配色：请描述框架与承载面的主色搭配，格式为：
+- [颜色A] (框架) + [颜色B] (承载面)，例如："蓝色立柱配橙色横梁" 或 "全灰色工业风"。
+
+垂直构件 (Vertical Components - The Skeleton)
+立柱 (Columns/Uprights)：
+- 数量：请给出可见数量（如：4根）或估计范围
+- 形态：描述截面形状（例如：角钢 Angle steel / C型钢 C-channel / 方钢 square）
+- 特征：孔型或细节（如：带调节孔 slotted / 冲孔 punched / 无孔 solid）
+- 颜色：若可见，请说明颜色
+
+侧面支撑 (Side Bracing)：
+- 形态：如 Z 字形(Zig-zag) / X 交叉(Cross-bracing) / 水平直拉(Horizontal)
+- 位置：连接前后立柱还是侧面
+
+水平构件 (Horizontal Components - The Load)
+横梁 (Beams)：
+- 分布：每层可见的横梁数量（通常主视可见1根，实际为前后2根）
+- 连接方式：挂接(hooked into) / 螺栓固定(bolted to) / 其他
+- 颜色：若可见说明颜色
+
+层板/承载面 (Shelves/Decking)：
+- 构成逻辑（单层构成方式）选择：
+  - 选项 A：整块板 (Single continuous panel)
+  - 选项 B：分块拼接 (Composed of 2 adjacent panels)
+  - 选项 C：网格板 (Wire mesh decking)
+- 细节特征：是否有拼接缝（如：中间有明显接缝 visible seam in center）、是否有支撑条、孔洞等
+
+额外要求（输出格式与不确定性处理）:
+- 请在回答中分别给出“自然语言描述”与一个简洁的结构化 JSON 段（包含上面各项字段），便于后续参数解析。
+- 对于不确定或无法从图片直接判断的项，请用 "UNKNOWN" 标注并给出你判断的置信度（高/中/低）与简短理由。
+- 如果能估计尺寸（如层高、宽度、深度），请给出估计值及单位（mm 或 m）和估计依据。
+
+示例输出结构（JSON 模板）:
+{
+  "subject": "4层重型钢制货架",
+  "colors": {"frame": "blue", "decking": "orange"},
+  "vertical_components": {"count": 4, "section": "角钢", "hole_type": "slotted", "color": "blue"},
+  "bracing": {"type": "X", "position": "rear"},
+  "beams": {"per_level_visible": 1, "actual_per_level": 2, "connection": "hooked", "color": "orange"},
+  "decking": {"type": "wire_mesh", "panels": "single", "seam": "none"},
+  "estimates": {"bay_width_mm": 2400, "bay_depth_mm": 1000, "level_height_mm": 1800}
+}
+
+请基于图片尽可能完整、准确地填充上述信息。
+"""
 
         print(f"使用方法: {self.method}")
         print(f"分析图片: {image_path}")
@@ -356,3 +400,62 @@ analyzer = ImageAnalyzer(method="siliconflow", api_key="你的密钥")
             return self.analyze_with_huggingface(image_path, prompt)
         else:
             return f"不支持的方法: {self.method}"
+
+
+def default_analysis_prompt() -> str:
+        """Return the refined default prompt used for image analysis.
+
+        This allows other modules (e.g., the frontend) to explicitly pass
+        a consistent prompt to different analyzer backends.
+        """
+        return """
+主体定义 (Subject Definition)
+请首先用一句话提供主体的核心描述，格式为：
+- [层数/高度] + [材质] + [主体名称]
+示例："4层重型钢制货架" 或 "2米高自动化立体库货架"
+
+整体配色：请描述框架与承载面的主色搭配，格式为：
+- [颜色A] (框架) + [颜色B] (承载面)，例如："蓝色立柱配橙色横梁" 或 "全灰色工业风"。
+
+垂直构件 (Vertical Components - The Skeleton)
+立柱 (Columns/Uprights)：
+- 数量：请给出可见数量（如：4根）或估计范围
+- 形态：描述截面形状（例如：角钢 Angle steel / C型钢 C-channel / 方钢 square）
+- 特征：孔型或细节（如：带调节孔 slotted / 冲孔 punched / 无孔 solid）
+- 颜色：若可见，请说明颜色
+
+侧面支撑 (Side Bracing)：
+- 形态：如 Z 字形(Zig-zag) / X 交叉(Cross-bracing) / 水平直拉(Horizontal)
+- 位置：连接前后立柱还是侧面
+
+水平构件 (Horizontal Components - The Load)
+横梁 (Beams)：
+- 分布：每层可见的横梁数量（通常主视可见1根，实际为前后2根）
+- 连接方式：挂接(hooked into) / 螺栓固定(bolted to) / 其他
+- 颜色：若可见说明颜色
+
+层板/承载面 (Shelves/Decking)：
+- 构成逻辑（单层构成方式）选择：
+    - 选项 A：整块板 (Single continuous panel)
+    - 选项 B：分块拼接 (Composed of 2 adjacent panels)
+    - 选项 C：网格板 (Wire mesh decking)
+- 细节特征：是否有拼接缝（如：中间有明显接缝 visible seam in center）、是否有支撑条、孔洞等
+
+额外要求（输出格式与不确定性处理）:
+- 请在回答中分别给出“自然语言描述”与一个简洁的结构化 JSON 段（包含上面各项字段），便于后续参数解析。
+- 对于不确定或无法从图片直接判断的项，请用 "UNKNOWN" 标注并给出你判断的置信度（高/中/低）与简短理由。
+- 如果能估计尺寸（如层高、宽度、深度），请给出估计值及单位（mm 或 m）和估计依据。
+
+示例输出结构（JSON 模板）:
+{
+    "subject": "4层重型钢制货架",
+    "colors": {"frame": "blue", "decking": "orange"},
+    "vertical_components": {"count": 4, "section": "角钢", "hole_type": "slotted", "color": "blue"},
+    "bracing": {"type": "X", "position": "rear"},
+    "beams": {"per_level_visible": 1, "actual_per_level": 2, "connection": "hooked", "color": "orange"},
+    "decking": {"type": "wire_mesh", "panels": "single", "seam": "none"},
+    "estimates": {"bay_width_mm": 2400, "bay_depth_mm": 1000, "level_height_mm": 1800}
+}
+
+请基于图片尽可能完整、准确地填充上述信息。
+"""

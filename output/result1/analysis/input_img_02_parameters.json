@@ -1,44 +1,44 @@
 {
   "warehouse_config": {
     "overall_layout": {
-      "rows": 1,
+      "rows": 2,
       "row_spacing": 3000.0,
-      "orientation": "unknown"
+      "orientation": "north-south"
     }
   },
   "racking_system": {
     "dimensions": {
-      "bay_width": 2000.0,
-      "bay_depth": 1500.0,
-      "total_height": 6400.0
+      "bay_width": 2400.0,
+      "bay_depth": 1000.0,
+      "total_height": 6000.0
     },
     "structure": {
-      "levels": 4,
-      "first_beam_height": 500,
-      "beam_spacing": 1600.0
+      "levels": 3,
+      "first_beam_height": 200.0,
+      "beam_spacing": 1800.0
     },
     "components": {
       "upright": {
-        "type": "C型钢",
-        "section_size": "C型钢",
-        "color": "黑色",
+        "type": "L-beam",
+        "section_size": "80x60",
+        "color": "blue",
         "material": "steel"
       },
       "beam": {
-        "type": "beam",
+        "type": "P-beam",
         "section_size": "50x100",
-        "color": "黄色",
-        "connection_type": "螺栓固定"
+        "color": "orange",
+        "connection_type": "clip-on"
       },
       "decking": {
         "has_decking": true,
-        "type": "单块板",
+        "type": "wire-mesh",
         "thickness": 30.0
       }
     },
     "connection_details": {
       "beam_to_upright": {
-        "method": "螺栓固定",
+        "method": "clip",
         "bolt_count": 0,
         "weld_length": 0.0
       },

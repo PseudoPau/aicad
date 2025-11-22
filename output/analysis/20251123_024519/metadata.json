@@ -1,0 +1,31 @@
+{
+  "assembly": "output\\analysis\\20251123_024519\\warehouse_assembly.step",
+  "components_dir": "output\\analysis\\20251123_024519\\components",
+  "components": [
+    {
+      "name": "upright_left_1.step",
+      "path": "output\\analysis\\20251123_024519\\components\\upright_left_1.step",
+      "size_bytes": 15624
+    },
+    {
+      "name": "upright_right_2.step",
+      "path": "output\\analysis\\20251123_024519\\components\\upright_right_2.step",
+      "size_bytes": 15669
+    },
+    {
+      "name": "beam_front_3.step",
+      "path": "output\\analysis\\20251123_024519\\components\\beam_front_3.step",
+      "size_bytes": 15555
+    },
+    {
+      "name": "beam_back_4.step",
+      "path": "output\\analysis\\20251123_024519\\components\\beam_back_4.step",
+      "size_bytes": 15668
+    },
+    {
+      "name": "decking_5.step",
+      "path": "output\\analysis\\20251123_024519\\components\\decking_5.step",
+      "size_bytes": 15671
+    }
+  ]
+}
