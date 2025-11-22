@@ -1,0 +1,4 @@
+cadquery
+streamlit
+python-dotenv
+openai
