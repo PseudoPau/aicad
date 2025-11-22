@@ -1,5 +1,5 @@
 # test_hf.py
-from ai_analyzer import ImageCaptioner
+from backend.M2.ai_analyzer import ImageCaptioner
 
 print("Instantiating ImageCaptioner (no model yet)...")
 c = ImageCaptioner()

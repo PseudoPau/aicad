@@ -1,55 +1,75 @@
 """
-M3 Phase 2: Assembly Manager
-Assembles individual components into complete warehouse structures and exports to STEP
+M3 Phase 2: Assembly Manager (组装管理器)
+功能：将单个组件组装成完整的仓库货架结构并导出为STEP格式
 
-功能模块:
-- AssemblyBuilder: 主类，负责装配和导出
-  - __init__: 从配置参数初始化装配器
-  - build_single_bay: 生成单个货架单元 (5个部件)
-  - assemble_warehouse: 将部件并集成一个完整的3D模型
-  - export_step: 导出为STEP CAD文件
-
-工作流程:
-1. AssemblyBuilder(config) 初始化 - 读取货架尺寸和结构参数
-2. build_single_bay() 生成部件 - 创建竖柱、梁、铺板
-3. assemble_warehouse() 装配 - 使用union操作合并所有部件
-4. export_step(path) 导出 - 保存为STEP文件供CAD软件打开
-
-坐标系说明:
-- X轴: 货架宽度方向 (0 → bay_width)
-- Y轴: 货架深度方向 (0 → bay_depth)
-- Z轴: 货架高度方向 (0 → total_height)
+主要职责：
+1. 解析验证后的参数配置
+2. 构建单个货架单元（包含立柱、横梁、层板等组件）
+3. 将所有组件组合成完整的3D模型
+4. 导出为STEP格式文件供CAD软件使用
 """
 
+# CadQuery库：用于3D建模和几何操作
 import cadquery as cq
+# Path类：用于文件路径操作
 from pathlib import Path
+# 类型提示：用于函数参数和返回值的类型标注
 from typing import List, Tuple, Dict, Any
+# 组件工厂：提供立柱、横梁、层板的构建器
 from backend.M3.component_factory import UpRightBuilder, BeamBuilder, DeckingBuilder
+# 日志工具：用于记录程序运行日志
 from utils.logger import get_logger
 
+# 初始化当前模块的日志记录器
 logger = get_logger(__name__)
 
 
 class AssemblyBuilder:
     """
-    Assembles warehouse racking components and manages STEP export
+    仓库货架组装构建器
     
-    Takes validated parameter config and builds complete 3D model
+    功能说明：
+    - 接收验证后的参数配置（来自M2阶段的输出）
+    - 构建完整的3D仓库货架模型
+    - 管理STEP格式文件的导出
+    
+    工作流程：
+    1. 初始化时解析配置参数
+    2. 构建单个货架单元（包含所有组件）
+    3. 将所有组件组合成完整装配体
+    4. 导出为STEP格式文件
     """
     
     def __init__(self, config: Dict[str, Any]):
         """
-        Initialize assembly builder with warehouse parameters
+        初始化组装构建器，解析仓库参数配置
+        
+        功能实现：
+        - 从配置字典中提取货架系统的尺寸参数
+        - 从配置字典中提取结构参数（层数、横梁高度等）
+        - 设置默认值以防配置缺失
+        - 记录初始化日志
         
         Args:
-            config: Validated parameter dictionary from M2 output
-                   Must contain: racking_system.dimensions and structure
+            config: 验证后的参数字典（来自M2阶段输出）
+                   必须包含：
+                   - racking_system.dimensions: 尺寸参数
+                   - racking_system.structure: 结构参数
         
         Raises:
-            ValueError: If required config fields are missing
+            ValueError: 当配置结构无效或缺少必需字段时抛出
+        
+        实例属性：
+        - bay_width: 货架单元宽度（毫米），默认2400mm
+        - bay_depth: 货架单元深度（毫米），默认1000mm
+        - total_height: 货架总高度（毫米），默认6000mm
+        - levels: 货架层数，默认3层
+        - first_beam_height: 第一层横梁高度（毫米），默认200mm
+        - beam_spacing: 横梁间距（毫米），默认1800mm
         """
         try:
-            # Extract key dimensions from config
+            # 从配置中提取尺寸参数（使用嵌套get避免KeyError）
+            # 如果配置中没有racking_system，返回空字典
             dimensions = config.get("racking_system", {}).get("dimensions", {})
             structure = config.get("racking_system", {}).get("structure", {})
             

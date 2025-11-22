@@ -2,6 +2,11 @@ import io
 from pathlib import Path
 import streamlit as st
 from datetime import datetime
+import sys
+
+# Add backend directory to path for imports
+backend_path = Path(__file__).parent.parent / "backend"
+sys.path.insert(0, str(backend_path))
 
 from utils.file_manager import ensure_dir
 from utils.logger import get_logger
@@ -267,6 +272,20 @@ else:
                             st.error("❌ No validated parameters available. Please complete Step 3 first.")
                         else:
                             if st.button("Generate 3D Model (STEP)", width='stretch'):
+                                # Immediately write a UI invocation marker so we can detect the button press
+                                try:
+                                    from datetime import datetime
+                                    ui_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                    ui_dir = out_base / "analysis"
+                                    ensure_dir(ui_dir)
+                                    ui_marker = ui_dir / f"ui_invoke_{ui_ts}.txt"
+                                    with open(ui_marker, "w", encoding="utf-8") as um:
+                                        um.write(f"button_pressed: {ui_ts}\n")
+                                        um.write(f"output_dir: {output_dir}\n")
+                                        um.write(f"validated_params_present: {bool(validated_params)}\n")
+                                except Exception as e:
+                                    logger.warning(f"Failed to write UI invoke marker: {e}")
+
                                 with st.spinner("Generating 3D CAD model..."):
                                     success, step_file, error_msg = generate_warehouse_step(validated_params, output_dir)
                                     
@@ -301,6 +320,17 @@ else:
                                                     st.error(f"Failed to read assembly info: {e}")
                                             else:
                                                 st.info("No `assembly_info.json` found.")
+
+                                                # Show generation.log if present (contains success/failure and traceback)
+                                                gen_log_path = step_path_obj.parent / "generation.log"
+                                                if gen_log_path.exists():
+                                                    try:
+                                                        with open(gen_log_path, "r", encoding="utf-8") as gl:
+                                                            st.text_area("generation.log", value=gl.read(), height=220)
+                                                    except Exception as e:
+                                                        st.error(f"Failed to read generation.log: {e}")
+                                                else:
+                                                    st.info("No `generation.log` found in output directory.")
 
                                         # Download button
                                         with open(step_file, "rb") as f:
