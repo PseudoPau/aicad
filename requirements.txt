@@ -2,3 +2,10 @@ cadquery
 streamlit
 python-dotenv
 openai
+requests
+
+# 可选依赖（用于 Hugging Face BLIP 备选方案）
+# transformers
+# torch
+# pillow
+
