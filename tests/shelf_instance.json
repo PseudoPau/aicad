@@ -1,0 +1,42 @@
+{
+    "metadata": {
+        "project_name": "Industrial_Rack_PoC"
+    },
+    "global_constraints": {
+        "width": 2700,
+        "height": 4500,
+        "depth": 1050
+    },
+    "components": [
+        {
+            "component_id": "blue_upright",
+            "type": "column",
+            "parameters": {
+                "profile": "Omega",
+                "width": 90,
+                "depth": 70,
+                "thickness": 2,
+                "color": "blue"
+            }
+        },
+        {
+            "component_id": "orange_beam",
+            "type": "beam",
+            "parameters": {
+                "profile": "Box",
+                "height": 100,
+                "width": 50,
+                "layers": 4,
+                "color": "orange"
+            }
+        },
+        {
+            "component_id": "steel_deck",
+            "type": "panel",
+            "parameters": {
+                "thickness": 1.5,
+                "color": "orange"
+            }
+        }
+    ]
+}
