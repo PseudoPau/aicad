@@ -1,33 +1,71 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Industrial Racking System Schema v2.2",
   "type": "object",
   "properties": {
     "metadata": {
       "type": "object",
       "properties": {
-        "project_name": { "type": "string" } 
+        "project_name": { "type": "string" },
+        "version": { "type": "string", "default": "2.2" }
       }
     },
     "global_constraints": {
       "type": "object",
+      "required": ["width", "height", "depth", "bay_count", "is_double_row"],
       "properties": {
-        "width": { "type": "number" },
+        "width": { "type": "number", "description": "单组货架轴线宽度" },
         "height": { "type": "number" },
-        "depth": { "type": "number" }
-      },
-      "required": ["width", "height", "depth"]
+        "depth": { "type": "number", "description": "单排货架深度" },
+        "bay_count": { "type": "integer", "minimum": 1, "description": "横向连排组数" },
+        "is_double_row": { "type": "boolean", "description": "是否为背靠背双排布局" },
+        "spacer_length": { "type": "number", "description": "双排之间的连接杆长度 (mm)", "default": 200.0 }
+      }
     },
     "components": {
       "type": "array",
       "items": {
         "type": "object",
+        "required": ["type", "parameters"],
         "properties": {
-          "type": { "enum": ["column", "beam", "panel"] },
-          "parameters": { "type": "object" }
-        },
-        "required": ["type", "parameters"]
+          "type": { "enum": ["column", "beam", "bracing", "guard_rail"] },
+          "parameters": {
+            "type": "object",
+            "oneOf": [
+              {
+                "description": "立柱参数",
+                "required": ["width", "depth", "thickness"],
+                "additionalProperties": false,
+                "properties": {
+                  "width": { "type": "number" },
+                  "depth": { "type": "number" },
+                  "thickness": { "type": "number" }
+                }
+              },
+              {
+                "description": "横梁参数",
+                "required": ["width", "height", "layers"],
+                "additionalProperties": false,
+                "properties": {
+                  "width": { "type": "number" },
+                  "height": { "type": "number" },
+                  "layers": { "type": "integer" }
+                }
+              },
+              {
+                "description": "斜撑参数",
+                "required": ["width", "thickness", "pattern"],
+                "additionalProperties": false,
+                "properties": {
+                  "width": { "type": "number" },
+                  "thickness": { "type": "number" },
+                  "pattern": { "enum": ["X", "Z", "K", "diagonal"] }
+                }
+              }
+            ]
+          }
+        }
       }
     }
-  },
-  "required": ["global_constraints", "components"] 
+  }
 }
