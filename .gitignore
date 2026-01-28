@@ -1,19 +1,12 @@
-# 1. 隐藏敏感信息
+# 绝对严禁上传
 .env
 
-# 2. 隐藏输出成果（生成的 JSON 和 STEP 文件）
-../output/
+# 运行产出
+output/
+*.step
 extracted_instance.json
 
-# 3. 隐藏 Python 运行缓存
+# Python 环境与缓存
 __pycache__/
-*.pyc
-
-# 4. 隐藏虚拟环境和 IDE 配置
 .venv/
-.vscode/
-.idea/
-
-# 5. 忽略测试图片（如果不想公开）
-tests/*.jpg
-tests/*.png
+*.pyc
