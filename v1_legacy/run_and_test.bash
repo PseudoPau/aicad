@@ -1,1 +1,0 @@
- & D:\miniconda3\envs\aicad_hackathon\python.exe E:\PLAYGROUND\aicad\app.py

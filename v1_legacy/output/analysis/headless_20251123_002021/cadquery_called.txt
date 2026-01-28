@@ -1,3 +1,0 @@
-cadquery_invoked: 2025-11-23T00:20:21.205528
-assembly_type: <class 'cadquery.occ_impl.shapes.Compound'>
-has_exportStep: True
