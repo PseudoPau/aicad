@@ -1,4 +1,4 @@
-# AI Parametric Modeling Agent (PoC)
+# image-to-cad (PoC)
 
 这是一个基于 AI 视觉识别的参数化建模工具原型。它实现了从**现场照片**到**标准 CAD 几何体**的全自动转化。
 
@@ -23,3 +23,4 @@
 2. 在 `.env` 中填入你的 `ZHIPU_API_KEY`。
 3. 运行 `python main.py`。
 
+<img width="1287" height="722" alt="1b91278c-08c5-4dd1-8a76-d5c67e08a2e7" src="https://github.com/user-attachments/assets/5c81063c-0d5f-455d-a81f-73e3ecd31202" />
