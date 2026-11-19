@@ -1,54 +1,112 @@
-# image-to-cad (PoC)
+# aicad · 货架方案工作台
 
-"From Pixels to Tectonics" —— 本项目不仅是视觉识别，更是利用参数化逻辑对空间物理规则的数字化重构。
-这是一个基于 AI 视觉识别的参数化建模工具原型。它实现了从**现场照片**到**标准 CAD 几何体**的全自动转化。
+把现场货架信息整理成可修改、可复核的几何草案，再交给 CAD 人员继续工作。
 
-<img width="1289" height="718" alt="84237e88549699f01c8c1abc1bfcfb91" src="https://github.com/user-attachments/assets/147858d1-66bc-49ba-ab2d-2172467ad641" />
+## 场景与问题
 
-## 🏗️ 核心演进：从形状到系统
+首要用户假设是货架方案人员或现场测绘人员。典型任务是：现场只有照片和部分尺寸，需要复核已有货架的排布、讨论改动，并向同事交接一个能继续编辑的空间方案。
 
-与普通的 3D 生成工具不同，本项目的重点在于解决工业场景中的 **结构建构（Tectonic Logic）** 问题，不仅看起来“像”，而且实际好用：
+照片能帮助辨认排数、跨数和层数；测量记录提供尺寸。两者分散时，用户需要反复对照、录入和重建。aicad 希望把这些信息汇成一份可修改的参数方案，修改后同步构造和交付文件。
 
-- **拓扑自动识别**: 能够准确识别并重构“双排背靠背（Back-to-Back）”布局及其物理连接件（Spacer Bars）。
-- **物理堆叠逻辑**: 抛弃了简单的几何重心对齐，实现了层板（Panel）与横梁（Beam）的物理支撑对位，消除了 3D 建模中的穿模（Clash）干涉。
-- **自适应 Z 型斜撑**: 引入动态模数逻辑，根据货架高度自动计算最优支撑密度（Modular Bracing），实现了斜撑端点与立柱中心线的像素级对齐。
-- **扫地高度适配**: 自动复刻工业标准的底部起步高度（Bottom Offset），确保模型符合叉车操作等实际物流工程需求。
+减少重复建模和沟通返工是待验证的价值假设。当前没有用户任务耗时、识别准确率或供应商验收数据。
 
-## 📐 几何逻辑证明
+## 输入与输出
 
-为了保证生成的 .step 模型可直接用于工业生产，
-- 本项目通过严谨的三角函数锁定构件姿态： ```斜撑倾角: $\theta = 90^\circ - \arctan(h/D)$。```
-- 通过复合旋转矩阵将垂直杆件锁定在 ```$YZ$``` 平面内。
-- **LOD 350 细节**: 模型包含真实的 Omega 立柱截面、底脚板螺栓位及层板边缘倒角。
+| 输入 | 用途与要求 |
+|---|---|
+| 现场参考照片 | 在浏览器中与参数对照；当前 UI 不做自动识别 |
+| 示例或导入的参数 JSON | 作为方案起点，可通过表单和完整 JSON 修改 |
+| 布局尺寸 | 每跨轴线宽度、立柱高度、单排轴线深度、跨数、层数、排布及双排间距；单位 mm |
+| 构件尺寸 | 立柱、横梁、斜撑的截面参数；需使用测量或规格资料确认 |
 
-## 🌟 技术架构
-采用“分层解耦”的 Multi-agent 架构，平衡了 AI 的灵活性与 CAD 的严谨性：
-- **Vision Agent**: 利用智谱 GLM-4V 提取工业货架的几何参数。
-- **Schema Validation**: 采用 JSON Schema 严格校验 AI 提取数据的合法性。
-- **CAD Translation**: 使用 CadQuery (OpenCASCADE) 引擎自动生成 3D STEP 模型。
+“每跨轴线宽度”不是货架总外宽，“单排轴线深度”不是最大外轮廓。照片无法确定的数值需要补测，示例值只用于体验。
 
-<img width="1293" height="723" alt="250334ce3bba7d52c4fa555856c1557a" src="https://github.com/user-attachments/assets/49fdf83f-9e8f-4e5b-8844-c0932080bdc4" />
+| 输出 | 解决什么问题 | 当前状态 |
+|---|---|---|
+| 参数 JSON | 保存方案，交接或再次导入 | UI 可下载 |
+| 布局 manifest | 复核构件数量、位置、层高和默认假设 | 离线 CLI 可生成 |
+| 三维预览 | 旋转检查当前方案的几何 | 已实现接口，当前环境缺 CadQuery，未跑通成功路径 |
+| STEP | 在其他 CAD 软件中继续处理 | 由同一预览几何导出，当前环境待验收 |
 
-## 🛠️ 技术栈
-- **Language**: Python 3.10+
-- **AI Model**: ZhipuAI (GLM-4V)
-- **CAD Engine**: CadQuery
-- **Architecture**: Multi-agent Decoupling (Vision, Validator, Translator)
+输出定位为方案复核与 CAD 交接草案。承载、供应商连接规格和加工可行性需要另行确认。
 
-## 📂 项目结构
+## 一次任务如何完成
+
+1. **整理输入**：载入示例或参数 JSON，加入现场照片用于对照。
+2. **确认参数**：修改布局和构件尺寸；检查输入错误，回到对应字段修正。
+3. **复核构造**：生成三维预览，检查排数、跨数、层数和空间关系；修改参数后旧预览和 STEP 失效。
+4. **交付方案**：下载参数 JSON；几何生成成功后下载同版本 STEP。
+
+当前 UI 的照片入口只供本地对照。仓库中的 GLM 视觉提取是独立的 CLI 可选入口，尚未接入上述人工确认闭环。
+
+## 功能与产品模块
+
+| 产品模块 | 用户动作 | 对应实现 |
+|---|---|---|
+| 现场资料 | 参考照片、示例/JSON 导入 | web/index.html、web/app.js |
+| 参数方案 | 表单修改、完整参数编辑、尺寸检查 | web/app.js → ui_server.py → core/pipeline.py |
+| 构造复核 | 参数转成统一布局，再生成几何 | core/geometry_contract.py → core/translator.py、core/components.py |
+| 方案交付 | 下载 JSON、生成同版预览与 STEP | ui_server.py、core/pipeline.py |
+| 视觉提取（可选） | 照片转候选参数 | core/vision_agent.py，由 main.py 调用 |
+
+## 视觉与状态如何表达
+
+页面按任务顺序组织：左侧输入与参数，中间构造复核，右侧检查与交付。照片、数值和几何各有固定位置，方便来回对照。
+
+流程状态跟随实际结果变化：输入草稿、参数通过、几何生成、可交付。修改参数会使旧结果失效；环境阻塞与参数错误分别显示。文档来源标记目前是示例/导入/人工修改三级，逐字段来源、确认状态、撤销和自动保存仍待实现。
+
+## 架构与拓展性
+
+```text
+示例 / 参数 JSON ─────────┐
+                        ├→ 校验 → Layout 几何契约 ─┬→ 布局 manifest
+照片 → 视觉候选参数（CLI）┘                         └→ CadQuery 构造 → mesh / STEP
+                              ↑
+                        Web 参数编辑与检查
 ```
-AICAD/
-├── aicad/
-│   ├── core/           # 包含组件库 (components.py) 与翻译引擎 (translator.py)
-│   ├── schema/         # v2.2 工业级 JSON 协议规范
-│   └── main.py         # 全链路运行入口
-├── output/             # 自动生成识别后的 JSON 与 STEP 模型
-└── requirements.txt    # 核心依赖：cadquery, zhipuai
+
+Layout 统一排布、框架位置、层高与斜撑分段；CLI 预览和 CAD translator 使用同一套规则。新增输入方式不应改写构造；新增导出格式不应改变参数；新增货架类型应先补几何契约、构件和测试，再接入界面。
+
+当前单排/双排测试证明同一货架族能按布局参数变化，还不能证明任意工业构件可接入。下一项扩展验收应引入一个有真实尺寸资料的新构造规则，记录需要修改的模块及原有用例是否继续通过。
+
+## 当前证据与构造范围
+
+- 离线 fixture → 校验 → 布局 manifest 已跑通；8 项纯 Python 测试通过。
+- 浏览器已走查示例加载、参数修改、非法尺寸、检查和环境阻塞反馈。
+- 目前生成规则覆盖立柱、横梁、层板、底板和端部斜撑。双排连接杆尚未建模，底板无螺栓孔。
+- 层板厚度、起步高度、顶部留白和斜撑间距仍有默认假设；未验证承载、完整连接或加工要求。
+- 当前机器缺少 CadQuery；真实 mesh/STEP 成功路径待验证。GLM 识别质量和目标用户价值尚未验证。
+
+## 启动与复现
+
+安装离线依赖并启动界面：
+
+```powershell
+python -m pip install -r requirements-minimal.txt
+python ui_server.py --port 8766
 ```
 
-## 🚀 快速启动
-1. 克隆仓库。
-2. 在 `.env` 中填入你的 `AI_API_KEY`。
-3. 运行 `python main.py`。
+浏览器打开 http://127.0.0.1:8766 。先从示例开始，核对字段后点击“检查参数”。
 
+离线健康检查无需模型密钥或 CadQuery：
 
+```powershell
+python main.py --fixture --output-dir .\output
+python -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+输出 validated_instance.json 和 preview_manifest.json。输出目录不可写时，使用 --output-dir 指向可写位置。
+
+安装兼容的 CadQuery 后，单独验收 STEP：
+
+```powershell
+python main.py --fixture --export-step --output-dir .\output
+```
+
+视觉模式需安装 zhipuai，并在 .env 中设置 ZHIPU_API_KEY。以下命令会把指定图片发给配置的视觉服务，然后尝试构造 STEP：
+
+```powershell
+python main.py --image .\tests\rack_photo.jpg --output-dir .\output
+```
+
+重新进入项目请先读 [REASSESSMENT.md](REASSESSMENT.md)。

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>aicad · 货架方案工作台</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/workflow.css"></head>
+<body>
+<header><a class="brand" href="/">ai<span>cad</span><small>货架方案工作台</small></a><div class="topnote"><i></i>现场复核与 CAD 交接 · 本地工作区</div></header>
+<main>
+<section class="intro product-intro"><div><p class="eyebrow">为货架方案与现场测绘人员设计 · 当前验证场景</p><h1>把现场货架，整理成可复核的空间方案。</h1><p>对照照片、补齐尺寸，调整排布与层数，再把同一份方案交给 CAD 人员继续工作。</p></div><a class="button hero-start" href="#workbench">从示例开始 ↓</a></section>
+<section class="task-brief" aria-label="场景、问题与交付">
+  <article><span class="brief-label">使用场景</span><h2>复核一组已有货架</h2><p>现场拍了照片，拿到部分尺寸，需要讨论排布改动，或向同事交接一个空间草案。</p></article>
+  <article><span class="brief-label">要解决的问题</span><h2>让照片、尺寸与构造对得上</h2><p>把分散的信息收进同一份参数方案。改一次数值，再检查对应构造，减少重复录入与来回核对。</p></article>
+  <article><span class="brief-label">这次任务的交付</span><h2>可修改参数 + 可交接几何</h2><p>参数 JSON 保存方案；三维预览用于复核；STEP 交给 CAD 软件继续处理。</p><span class="brief-state">当前可编辑与检查参数；真实几何取决于本机 CAD 环境</span></article>
+</section>
+<section class="workspace-intro" id="workbench"><div><p class="eyebrow">开始一次方案复核</p><h2>从已有信息走到一份可交接的草案</h2></div><p>先用示例熟悉流程。现场照片在当前版本中供对照；尺寸由你确认。</p></section>
+<div id="workflow" aria-live="polite"></div>
+<div class="workspace">
+<aside class="input-panel"><div class="panel-title"><h2>01 · 资料与参数</h2><span id="dirty" class="badge">草稿</span></div><p class="panel-help">输入照片与已知尺寸，确认这组货架长什么样。</p><div class="source-actions"><button id="example" class="secondary">载入示例</button><label class="file-button">导入参数 JSON<input id="import" type="file" accept=".json,application/json"></label></div><label class="photo-zone" for="photo"><img id="photo-preview" hidden alt="现场参考照片"><span id="photo-label">＋ 添加现场参考照片<small>照片留在浏览器中供对照，暂不自动识别</small></span><input id="photo" type="file" accept="image/*"></label><p class="source-note" id="source-note">示例参数 · 尚未与现场尺寸核对</p><form id="parameters"><div class="field full"><label for="name">方案名称</label><input id="name" name="name" value="货架草案"></div><div class="group-title">布局与尺度 <span>单位 mm</span></div><p class="field-help">宽度按每跨轴线、深度按单排轴线填写；示例值需要替换为测量或规格数据。</p><div id="fields" class="fields"></div><details><summary>立柱、横梁与斜撑规格</summary><p class="muted">在完整参数中修改构件尺寸，点击“应用 JSON”同步方案。截面尺寸请对照测量记录或型材规格。</p><textarea id="raw" spellcheck="false" aria-label="完整参数 JSON"></textarea><button id="apply-json" type="button" class="secondary">应用 JSON</button></details></form><div class="actions"><button id="check" class="secondary">检查参数</button><button id="build" class="primary">生成 / 更新预览 <span>↗</span></button></div></aside>
+<section class="viewport"><div class="view-header"><div><span class="eyebrow">02 · 构造复核</span><h2 id="view-title">等待生成几何</h2></div><button id="reset-view" class="icon" aria-label="重置视角">重置视角</button></div><canvas id="viewer" aria-label="货架三维几何预览，可拖动旋转，滚轮缩放"></canvas><div id="empty" class="empty"><div class="cube">◇</div><h3>先对照尺寸，再看构造</h3><p>生成后，在这里旋转检查排数、跨数与层数。<br>修改左侧参数，再生成同一份方案的预览。</p></div><div class="view-footer"><span id="mesh-info">暂无几何</span><span>拖动旋转 · 滚轮缩放</span></div><div id="busy" hidden>正在构建几何并准备交付文件…</div></section>
+<aside class="review"><div class="panel-title"><h2>03 · 检查与交付</h2><span id="environment" class="badge">检查环境</span></div><div class="callout"><strong>交给下一位处理方案的人</strong><p>JSON 保存参数，STEP 交接几何。修改参数后，重新生成预览再导出 STEP。</p></div><div id="results" aria-live="polite"><p class="muted">载入示例后，先检查参数，再生成预览。</p></div><div class="export"><div id="output-state"></div><button id="save-json" class="secondary">下载当前参数 JSON ↓</button><a id="save-step" class="button disabled" aria-disabled="true">生成后下载 STEP ↓</a><p id="version-note" class="muted">STEP 与预览绑定；参数修改后需重新生成。</p></div></aside>
+</div>
+<details class="scope-notes"><summary>这份草案包含什么，还需要复核什么？</summary><div class="scope-grid"><div><h3>当前构造范围</h3><p>单排 / 背靠背货架：立柱、横梁、层板、底板与端部斜撑。双排连接杆尚未建模，底板尚无螺栓孔。</p></div><div><h3>交付前需要确认</h3><p>尺寸、型材和连接规格需人工核对。起步高度、层板厚度和支撑间距含默认假设；承载与加工方案由专业人员另行确认。</p></div><div><h3>当前体验范围</h3><p>示例与参数编辑、检查可直接体验；真实三维和 STEP 需要本机 CAD 环境。照片识别还未接入本工作台。</p></div></div></details>
+<footer>用于货架方案复核与 CAD 交接 · 示例数据不代表现场测量</footer>
+</main><script src="/app.js"></script><script src="/workflow.js"></script></body></html>

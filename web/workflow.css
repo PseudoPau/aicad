@@ -1,0 +1,16 @@
+#workflow{margin:0 0 18px;padding:16px 18px;border:1px solid var(--edge);border-radius:12px;background:linear-gradient(110deg,#101b25,#152531);color:var(--text)}
+.workflow-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+.workflow-head strong{display:block;font-size:14px;font-weight:600;margin-top:3px}
+.workflow-status{font-size:11px;color:var(--cyan);white-space:nowrap}
+.workflow-track{display:flex;align-items:stretch;gap:8px}
+.workflow-step{display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:start;flex:1;min-width:0;padding:10px;border:1px solid #2b3d4d;border-radius:8px;background:#111c26}
+.workflow-step.active{border-color:#4f9d8d;background:#142b2b}.workflow-step.blocked{border-color:#75453f;background:#2b2224}.workflow-step.done{border-color:#2d6b61}
+.workflow-node{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#2b3d4d;color:#aec0cf;font-size:11px}.done .workflow-node{background:var(--cyan);color:#0b3029}.active .workflow-node{background:#356b63;color:#e5fff8}.blocked .workflow-node{background:#71443f;color:#ffe0dc}
+.workflow-copy{min-width:0}.workflow-copy strong{display:block;font-size:11px;font-weight:600;white-space:nowrap}.workflow-copy span{display:block;margin-top:2px;font-size:10px;color:var(--cyan)}.blocked .workflow-copy span{color:var(--red)}.workflow-copy small{display:block;margin-top:6px;color:var(--muted);font-size:10px;line-height:1.45}
+.workflow-arrow{align-self:center;color:#60778a;font-size:17px}
+.workflow-modules{display:flex;flex-wrap:wrap;gap:7px 14px;margin-top:12px;color:#8fa6b8;font-size:10px}.workflow-modules b{color:#c7d5e4;font-weight:500;margin-right:4px}
+@media(max-width:1000px){.workflow-track{overflow:auto;padding-bottom:4px}.workflow-step{min-width:170px}.workflow-arrow{display:none}}
+.output-ready,.output-pending,.output-blocked{font-size:11px;padding:9px 10px;border-radius:6px;margin-bottom:8px}
+.output-ready{color:var(--cyan);background:#142e28;border:1px solid #2d6b61}
+.output-pending{color:#d6b879;background:#302b20;border:1px solid #645738}
+.output-blocked{color:var(--red);background:#302222;border:1px solid #5b3e3d}
