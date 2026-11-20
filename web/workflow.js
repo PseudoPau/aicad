@@ -25,7 +25,7 @@
     if (id === "input") return s.doc ? "done" : "active";
     if (id === "confirm") return s.doc && !s.checked && !s.invalid ? "active" : (s.checked || s.built ? "done" : "pending");
     if (id === "check") return s.invalid ? "blocked" : (s.checked ? "done" : (s.doc ? "active" : "pending"));
-    if (id === "build") return s.blocked ? "blocked" : (s.built ? "done" : (s.checked ? "active" : "pending"));
+    if (id === "build") return s.built ? "done" : (s.blocked ? "blocked" : (s.checked ? "active" : "pending"));
     return s.step ? "done" : (s.blocked ? "blocked" : "pending");
   }
   function render() {
@@ -41,7 +41,7 @@
     root.innerHTML = html;
     const output = $("output-state");
     if (output) {
-      output.textContent = s.step ? "当前版本：JSON + STEP 可交接" : (s.blocked ? "当前版本：JSON 可保存；STEP 等待 CadQuery" : "当前版本：先检查并生成同版预览");
+      output.textContent = s.step ? "当前版本：JSON + STEP 可交接" : (s.built ? "当前版本：布局预览已生成；STEP 等待 CadQuery" : (s.blocked ? "当前版本：JSON 可保存；STEP 等待 CadQuery" : "当前版本：先检查并生成同版预览"));
       output.className = s.blocked ? "output-blocked" : (s.step ? "output-ready" : "output-pending");
     }
   }

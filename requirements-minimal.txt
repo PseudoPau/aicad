@@ -1,9 +1,2 @@
-# Offline fixture pipeline
-jsonschema>=4.20
-python-dotenv>=1.0
-
-# Optional STEP export:
-# cadquery>=2.4
-
-# Optional vision mode:
-# zhipuai>=2.1
+# Compatibility entry point for the base runtime.
+-r requirements.txt

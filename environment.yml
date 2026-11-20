@@ -1,0 +1,9 @@
+name: aicad
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - cadquery=2.8.0
+  - jsonschema=4.26.0
+  - python-dotenv=1.2.4
+  - pip

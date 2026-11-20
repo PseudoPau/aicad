@@ -1,0 +1,3 @@
+# Base runtime plus the CAD kernel for real preview and STEP export.
+-r requirements.txt
+cadquery==2.8.0

@@ -1,35 +1,45 @@
-import sys
+"""Optional CadQuery smoke test for the fixture translator.
+
+The deterministic pipeline is covered by ``tests/``. This script only checks
+the optional CAD adapter and exits cleanly with a readable message when
+CadQuery is not installed.
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
 from pathlib import Path
-from cadquery import exporters
 
-# 确保能导入 core 文件夹下的模块
-sys.path.append(str(Path(__file__).parent))
 
-from core.translator import run_translation
+def main() -> int:
+    parser = argparse.ArgumentParser(description="aicad CadQuery translator smoke test")
+    parser.add_argument("--instance", type=Path, default=Path("tests/shelf_instance.json"))
+    parser.add_argument("--output-step", type=Path, default=Path("output/test_result.step"))
+    args = parser.parse_args()
 
-def test_single_json():
-    # 1. 配置路径 (指向你已经生成的 JSON)
-    BASE_DIR = Path(__file__).resolve().parent
-    JSON_PATH = BASE_DIR.parent / "output" / "extracted_instance.json"
-    OUTPUT_STEP = BASE_DIR.parent / "output" / "test_result.step"
+    if importlib.util.find_spec("cadquery") is None:
+        print("CadQuery is not installed; skipping optional STEP smoke test.")
+        return 0
 
-    print(f"🛠️ 正在从缓存读取数据: {JSON_PATH}")
-    
-    if not JSON_PATH.exists():
-        print(f"❌ 错误: 未找到 {JSON_PATH}。请确认文件已生成。")
-        return
+    from cadquery import exporters
+    from core.translator import run_translation
 
-    # 2. 调用翻译引擎
+    if not args.instance.exists():
+        print(f"Instance not found: {args.instance}")
+        return 2
+
     try:
-        print("🏗️ 正在生成几何模型 (双排 + Z型斜撑)...")
-        assembly = run_translation(str(JSON_PATH))
-        
-        # 3. 导出模型
-        exporters.export(assembly.toCompound(), str(OUTPUT_STEP))
-        print(f"✅ 测试成功！模型已保存至: {OUTPUT_STEP}")
-        
-    except Exception as e:
-        print(f"💥 建模测试失败: {e}")
+        assembly = run_translation(str(args.instance))
+        args.output_step.parent.mkdir(parents=True, exist_ok=True)
+        exporters.export(assembly.toCompound(), str(args.output_step))
+    except Exception as exc:
+        print(f"STEP smoke test failed: {exc}")
+        return 1
+
+    print(f"STEP smoke test passed: {args.output_step}")
+    return 0
+
 
 if __name__ == "__main__":
-    test_single_json()
+    raise SystemExit(main())

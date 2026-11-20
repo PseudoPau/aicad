@@ -1,32 +1,38 @@
-# AI CAD 项目环境一键配置脚本
-# 适用环境: Windows PowerShell
+[CmdletBinding()]
+param(
+    [ValidateSet("Base", "CAD")]
+    [string]$Profile = "CAD",
+    [switch]$WithVision,
+    [string]$Python = "python"
+)
 
-Write-Host "--- 开始配置 AI CAD 开发环境 ---" -ForegroundColor Cyan
+$ErrorActionPreference = "Stop"
+$projectRoot = $PSScriptRoot
+$venvPath = Join-Path $projectRoot ".venv"
+$venvPython = Join-Path $venvPath "Scripts\python.exe"
 
-# 1. 配置 Conda 国内镜像源 (清华源)
-Write-Host "[1/4] 配置清华镜像源..." -ForegroundColor Yellow
-conda config --set show_channel_urls yes
-conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
-conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
-conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
-Write-Host "镜像源配置完成。" -ForegroundColor Green
+if (-not (Test-Path -LiteralPath $venvPython)) {
+    Write-Host "Creating project environment: $venvPath"
+    & $Python -m venv $venvPath
+    if ($LASTEXITCODE -ne 0) { throw "Could not create .venv. Install Python 3.12 and retry." }
+}
 
-# 2. 创建 Conda 环境
-Write-Host "[2/4] 创建名为 'cad' 的隔离环境 (Python 3.10)..." -ForegroundColor Yellow
-conda create -n cad python=3.10 -y
-Write-Host "环境创建成功。" -ForegroundColor Green
+& $venvPython -c "import sys; print('Python:', sys.version.split()[0]); print('Environment:', sys.executable)"
+if ($LASTEXITCODE -ne 0) { throw "The project environment is unavailable. Check .venv." }
 
-# 3. 安装 CadQuery
-Write-Host "[3/4] 安装 CadQuery 几何引擎 (从镜像源获取)..." -ForegroundColor Yellow
-conda install -n cad cadquery -y
-Write-Host "CadQuery 安装完成。" -ForegroundColor Green
+$requirementsFile = if ($Profile -eq "CAD") { "requirements-cad.txt" } else { "requirements.txt" }
+Write-Host "Installing $Profile dependencies..."
+$pipArgs = @("--disable-pip-version-check", "--timeout", "300", "--retries", "5")
+& $venvPython -m pip install @pipArgs -r (Join-Path $projectRoot $requirementsFile)
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed. Check the pip error above; rerun this script to retry." }
 
-# 4. 安装 ocp-vscode 预览插件库
-Write-Host "[4/4] 通过 pip 安装 ocp-vscode 预览组件..." -ForegroundColor Yellow
-# 获取 cad 环境下的 python 路径进行精准安装
-$pythonPath = "$(conda info --base)\envs\cad\python.exe"
-& $pythonPath -m pip install ocp-vscode
-Write-Host "ocp-vscode 安装完成。" -ForegroundColor Green
+if ($WithVision) {
+    Write-Host "Installing the optional vision adapter..."
+    & $venvPython -m pip install @pipArgs -r (Join-Path $projectRoot "requirements-vision.txt")
+    if ($LASTEXITCODE -ne 0) { throw "Vision dependency installation failed. Check the pip error above." }
+}
 
-Write-Host "--- 所有配置已完成！ ---" -ForegroundColor Cyan
-Write-Host "请在 VS Code 中选择 'cad' 环境作为 Python 解释器。" -ForegroundColor White
+& $venvPython -m pip check
+if ($LASTEXITCODE -ne 0) { throw "Installed dependencies have conflicts. See pip check output above." }
+
+Write-Host "Setup complete. Start the workbench with: .\start_local.ps1"
